@@ -3,17 +3,59 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <fstream>
+#include <sstream>
+#include <map>
 #include "mdapi/MdSpi.h"
 #include "traderapi/TraderSpi.h"
 #include "strategy/StrategyEngine.h"
 
-// Config parameters - would typically come from a config file
-const std::string BROKER_ID = "9999";  // SimNow broker ID
-const std::string USER_ID = "your_simnow_userid"; 
-const std::string PASSWORD = "your_simnow_password";
-const std::string MD_FRONT_ADDR = "tcp://180.168.146.187:10212";  // SimNow market data front
-const std::string TRADE_FRONT_ADDR = "tcp://180.168.146.187:10202";  // SimNow trade front
-const std::vector<std::string> INSTRUMENTS = {"rb2510", "IF2510"};  // Example instruments
+// Function to read config file
+std::map<std::string, std::string> readConfig(const std::string& filename) {
+    std::map<std::string, std::string> config;
+    std::ifstream file(filename);
+    
+    if (!file.is_open()) {
+        std::cerr << "Failed to open config file: " << filename << std::endl;
+        return config;
+    }
+    
+    std::string line;
+    std::string section;
+    
+    while (std::getline(file, line)) {
+        // Skip empty lines and comments
+        if (line.empty() || line[0] == ';' || line[0] == '#')
+            continue;
+            
+        // Section header
+        if (line[0] == '[' && line[line.length() - 1] == ']') {
+            section = line.substr(1, line.length() - 2);
+            continue;
+        }
+        
+        // Key-value pair
+        size_t pos = line.find('=');
+        if (pos != std::string::npos) {
+            std::string key = section + "." + line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+            config[key] = value;
+        }
+    }
+    
+    return config;
+}
+
+// Function to split a string by delimiter
+std::vector<std::string> split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
 
 // 全局指针，用于回调函数
 TraderSpi* g_pTraderSpi = nullptr;
@@ -32,6 +74,49 @@ void OrderCallback(const std::string& instrument,
 int main(int argc, char* argv[])
 {
     std::cout << "CTP Trading API Application Starting..." << std::endl;
+
+    // Read configuration
+    std::string configFile = "config.ini";
+    if (argc > 1) {
+        configFile = argv[1];
+    }
+    
+    std::cout << "Reading configuration from " << configFile << std::endl;
+    auto config = readConfig(configFile);
+    
+    // Check if the necessary config values are available
+    if (config["CTP.BrokerID"].empty() || config["CTP.UserID"].empty() || 
+        config["CTP.Password"].empty() || config["CTP.MdFrontAddr"].empty() || 
+        config["CTP.TradeFrontAddr"].empty()) {
+        std::cerr << "Missing required configuration. Please check " << configFile << std::endl;
+        return 1;
+    }
+    
+    const std::string BROKER_ID = config["CTP.BrokerID"];
+    const std::string USER_ID = config["CTP.UserID"];
+    const std::string PASSWORD = config["CTP.Password"];
+    const std::string MD_FRONT_ADDR = config["CTP.MdFrontAddr"];
+    const std::string TRADE_FRONT_ADDR = config["CTP.TradeFrontAddr"];
+    
+    // Parse instruments
+    std::vector<std::string> INSTRUMENTS;
+    if (!config["Instruments.List"].empty()) {
+        INSTRUMENTS = split(config["Instruments.List"], ',');
+    } else {
+        INSTRUMENTS = {"rb2510", "IF2510"};  // Default if not specified
+    }
+    
+    std::cout << "Configured to use:" << std::endl
+              << "  Broker ID: " << BROKER_ID << std::endl
+              << "  User ID: " << USER_ID << std::endl
+              << "  MD Front: " << MD_FRONT_ADDR << std::endl
+              << "  Trade Front: " << TRADE_FRONT_ADDR << std::endl
+              << "  Instruments: ";
+              
+    for (const auto& instrument : INSTRUMENTS) {
+        std::cout << instrument << " ";
+    }
+    std::cout << std::endl;
 
     // Initialize Market Data API
     CThostFtdcMdApi* pMdApi = CThostFtdcMdApi::CreateFtdcMdApi();

@@ -98,6 +98,10 @@ void MdSpi::Login(const std::string& brokerID, const std::string& userID, const 
     
     int result = m_pMdApi->ReqUserLogin(&req, ++m_nRequestID);
     std::cout << "Sending login request: " << ((result == 0) ? "Success" : "Failure") << std::endl;
+    // 错误信息
+    if (result != 0) {
+        std::cerr << "Login failed, error code: " << result << std::endl;
+    }
 }
 
 void MdSpi::SubscribeMarketData(const std::vector<std::string>& instruments)
