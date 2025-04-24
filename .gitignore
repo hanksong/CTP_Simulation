@@ -1,0 +1,35 @@
+# Build目录
+build/
+
+# 临时创建的目录
+libs/
+
+# macOS系统文件
+.DS_Store
+
+# CTP API框架文件（文件较大且包含非开源组件）
+CTP_API_Clean/
+TraderapiMduserapi_6.7.7_MacOS/
+TraderapiMduserapi_6.7.7_MacOS.zip
+
+# CMake生成的文件
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
+
+# VSCode配置
+.vscode/
+
+# 可执行文件
+*.exe
+*.out
+*.app
+
+# 个人凭证配置文件 (可选，如果你不想将个人账号信息上传)
+# config.ini
+
+*.ini
+*.zip
+*.con
+
