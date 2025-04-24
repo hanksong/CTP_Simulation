@@ -7,9 +7,9 @@
 ## 项目功能
 
 1. 实现数据的实时订阅
-2. 数据订阅后通过zeromq Push给strategyengine
-3. strategyengine从zmq中拉取数据，并将报单输送给orderapi
-4. orderapi实现下单，callback等。
+2. 数据订阅后通过ZeroMQ Push给策略引擎
+3. 策略引擎从ZMQ中拉取数据，并将报单输送给交易API
+4. 交易API实现下单，回调等功能
 
 ## 项目结构
 
@@ -17,10 +17,12 @@
 CTP_API/
 ├── CMakeLists.txt                 # CMake构建文件
 ├── README.md                      # 项目说明文档
-├── config.ini                     # 配置文件
+├── config.ini                     # 配置文件（SimNow账号配置）
 ├── run_mdapi_test.sh              # 行情模块测试脚本
 ├── test_market_data.sh            # 行情模块和ZeroMQ测试脚本
-├── TraderapiMduserapi_6.7.7_MacOS # CTP API框架
+├── run_zmq_receiver.sh            # ZeroMQ接收器测试脚本
+├── setup.sh                       # 项目环境设置脚本
+├── setup_clean_api.sh             # CTP API设置脚本
 └── src/                           # 源代码目录
     ├── main.cpp                   # 主程序入口
     ├── test_mdapi.cpp             # 行情模块测试程序
@@ -43,9 +45,9 @@ CTP_API/
 3. CMake (构建系统)
 4. C++14 兼容的编译器
 
-## 构建指南
+## 安装依赖项
 
-### 安装依赖项
+### 1. 安装系统依赖
 
 在MacOS上安装依赖项:
 
@@ -57,23 +59,26 @@ brew install zeromq
 brew install cmake
 ```
 
-### 构建项目
+### 2. 下载CTP API
+
+从上期所官网下载CTP API 6.7.7版本的MacOS版：
+http://www.sfit.com.cn/5_2_DocumentDown.htm
+
+下载完成后按照以下步骤处理：
 
 ```bash
-# 创建构建目录
-mkdir build && cd build
+# 创建API目录
+mkdir -p CTP_API_Clean/API
 
-# 生成Makefile
-cmake ..
+# 复制API文件
+cp -R TraderapiMduserapi_6.7.7_MacOS/API/* CTP_API_Clean/API/
 
-# 编译项目
-make
-
-# 安装 (可选)
-make install
+# 移除macOS安全属性
+xattr -d com.apple.quarantine CTP_API_Clean/API/thostmduserapi_se.framework/Versions/A/thostmduserapi_se
+xattr -d com.apple.quarantine CTP_API_Clean/API/thosttraderapi_se.framework/Versions/A/thosttraderapi_se
 ```
 
-## 使用指南
+## 构建与运行
 
 ### 配置文件
 
@@ -84,34 +89,40 @@ make install
 BrokerID=9999
 UserID=您的SimNow账号
 Password=您的SimNow密码
-MdFrontAddr=tcp://180.168.146.187:10212
-TradeFrontAddr=tcp://180.168.146.187:10202
+MdFrontAddr=tcp://218.202.237.33:10213  # 中国移动前置机地址
+TradeFrontAddr=tcp://218.202.237.33:10203
 
 [Instruments]
-List=rb2410,IF2406
+List=rb2510,IF2510
 ```
 
 ### 测试行情模块
 
-项目提供了单独测试行情模块的两种方式：
+项目提供了几种不同的测试脚本：
 
-1. 只测试行情接收:
+1. **只测试行情接收**:
 
 ```bash
 ./run_mdapi_test.sh
 ```
 
-2. 同时测试行情接收和ZeroMQ发布/订阅:
+2. **同时测试行情接收和ZeroMQ发布/订阅**:
 
 ```bash
 ./test_market_data.sh
 ```
 
-第二种方式会同时启动行情接收程序和ZeroMQ接收程序，可以验证整个数据流是否正常工作。
+3. **单独测试ZeroMQ接收**:
+
+```bash
+./run_zmq_receiver.sh
+```
 
 ### 运行完整系统
 
 ```bash
+# 从build目录运行
+cd build
 ./bin/ctp_trading
 ```
 
@@ -124,6 +135,7 @@ List=rb2410,IF2406
 1. 本项目仅用于学习和研究，不应在实际交易环境中使用。
 2. 使用SimNow环境进行测试时，需要注意交易时间限制。
 3. 请遵守相关法律法规和交易所规则。
+4. 海外用户可能无法直接连接中国内地的前置服务器，可能需要使用VPN或其他方法。
 
 ## 扩展方向
 
