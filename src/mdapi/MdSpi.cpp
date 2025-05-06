@@ -74,12 +74,19 @@ void MdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketDat
     if (pDepthMarketData)
     {
         std::cout << "Received market data for: " << pDepthMarketData->InstrumentID 
-                  << ", Last Price: " << pDepthMarketData->LastPrice << std::endl;
+                  << ", Trading Day: " << pDepthMarketData->TradingDay
+                  << ", Last Price: " << pDepthMarketData->LastPrice 
+                  << ", Open Price: " << pDepthMarketData->OpenPrice
+                  << ", Close Price: " << pDepthMarketData->ClosePrice
+                  << std::endl;
                 
         // Serialize and send market data through ZeroMQ
         // For simplicity, we're just sending the instrument ID and last price
         std::string message = std::string(pDepthMarketData->InstrumentID) + "," 
-                            + std::to_string(pDepthMarketData->LastPrice);
+                            + std::string(pDepthMarketData->TradingDay) + ","
+                            + std::to_string(pDepthMarketData->LastPrice) + ","
+                            + std::to_string(pDepthMarketData->OpenPrice) + ","
+                            + std::to_string(pDepthMarketData->ClosePrice);
         
         // 使用C风格API发送消息
         int rc = zmq_send(publisher, message.c_str(), message.size(), 0);
